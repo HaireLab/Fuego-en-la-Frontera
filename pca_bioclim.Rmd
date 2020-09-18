@@ -1,0 +1,181 @@
+---
+title: 'Principal Component Analysis of the Climate Environment for the Madrean Sky Islands'
+author: "SLH"
+date: "7/14/2020"
+output: html_document
+---
+### Introduction
+  
+Purpose: Conduct principal components analysis with bioclim data for the sky islands and assign values to output rasters
+
+Author: original script by E. Whitman and E. Batllori for analysis published in the following paper:
+  Whitman, E., E. Batllori, M.-A. Parisien, C. Miller, J.D. Coop, M.A. Krawchuk, G.W. Chong, and S.L. Haire. 2015. The Climate Space of Fire Regimes in North-Western North America.
+Journal of Biogeography 42 (9): 1736:49. https://doi.org/10.1111/jbi.12533.
+
+Revised by S. Haire, @HaireLab
+
+Notes:
+  Climate data (1981-2010 climate normals) can be downloaded from
+< https://adaptwest.databasin.org/pages/adaptwest-climatena >
+
+  Sky Island polygons are described here:
+  Deyo, Nicholas S.; Van Devender, Thomas R.; Smith, Alex; Gilbert, Edward. 2013. Documenting the biodiversity of the Madrean Archipelago: An analysis of a virtual flora and fauna. In: Gottfried, Gerald J.; Ffolliott, Peter F.; Gebow, Brooke S.; Eskew, Lane G.; Collins, Loa C. Merging science and management in a rapidly changing world: Biodiversity and management of the Madrean Archipelago III and 7th Conference on Research and Resource Management in the Southwestern Deserts; 2012 May 1-5; Tucson, AZ. Proceedings. RMRS-P-67. Fort Collins, CO: U.S. Department of Agriculture, Forest Service, Rocky Mountain Research Station. p. 292-299.) 
+  
+  We edited the original version to close a polygon gap on Huachuca (see Sky_Island_Complexes_edit.shp available in data folder). 
+  
+### Steps
+1. Prepare the bioclim data by cropping to the extent of the Sky Islands and using the island polygons as a mask (55 islands)
+2. Read in the data and generate an index with a 'pixel.code'. 
+3. Run the principal components analysis and use the pixel code to set back the PCA values to rasters.
+4. Plot the PC rasters. Note: We used a subset of the 55 islands in subsequent analysis. The subsetted PC's are available in graphic form as a manuscript supplement.
+
+
+```{r setup, include=FALSE, warning=FALSE}
+## set up
+library(sp)
+library(rgdal)
+library(raster)
+library(rasterVis)
+library(gridExtra)
+
+```
+
+```{r readdata, include=FALSE}
+
+## read in the layers w island extext
+files.to.read<-list.files("./data/bioclim/",pattern='1.asc') 
+## change the names back to original...
+name.raster<-c("AHM","bFFP","CMD","DD_0","DD_5","eFFP","EMT","Eref","MAP","MAT","MCMT","MSP","MWMT","NFFD","PPT_sm","PPT_wt","SHM","Tave_sm","Tave_wt","TD")
+
+for (i in 1:length(files.to.read)) {
+  # first reading each Climate grid
+  a<-raster(paste("./data/bioclim/", files.to.read[i], sep=""))
+  # then assign a name to each layer into the console
+  assign(name.raster[i],a)
+} 
+
+```
+
+```{r mapindex, include=FALSE}
+ID.for.cell<-c(1:ncell(MAP)) 
+for.x.y<-MAP
+#assign the value '99' to all pixels that are NA
+for.x.y<-reclassify(for.x.y,c(NA,NA,99))
+# get the x-y coordinates of each pixel
+xy.cont<-rasterToPoints(for.x.y) 
+## combine ID and xy coordinates
+ID.xy<-cbind(ID.for.cell,xy.cont); colnames(ID.xy)<-c('ID','x','y','NA')
+## remove na's
+ID.xy.cont<-ID.xy[!(ID.xy[,'NA'] %in% c(99)),]
+
+```
+
+```{r extractdata, include=FALSE}
+MAP.pca<-NULL
+for (i in 1:length(name.raster)){
+  # selecting each climate variable
+  a<-get(name.raster[i])
+  # intermediate step to select only those pixels that are in 'ID.xy.cont'
+  x<-cbind(ID.for.cell,a[])
+  x.clean<-x[x[,'ID.for.cell'] %in% ID.xy.cont[,'ID'],2]  # keep only the pixels that has an ID equal than any ID in ID.xy.cont
+  # adding the climate values of each variable to the matrix 'map.pca'
+  MAP.pca<-cbind(MAP.pca,x.clean)
+  # to make sure a different variable is used at each time, better to remove the intermediate steps
+  rm(a,x,x.clean)
+}
+
+# the 'name.raster' vector is used to give the proper colnames to 'map.pca'
+colnames(MAP.pca)<-name.raster
+```
+
+
+```{r runpca, include=FALSE}
+MAP.pcadf<-as.data.frame(MAP.pca)
+##scale.=TRUE standardizes the variables
+pca.climate<-prcomp(~ AHM + bFFP + CMD + DD_0 + DD_5 + eFFP + EMT + Eref + MAP + MAT + MCMT + MSP + MWMT + NFFD + PPT_sm + PPT_wt + SHM + Tave_sm + Tave_wt + TD, data = MAP.pcadf, scale.=TRUE) 
+```
+
+```{r summarypca, include=FALSE}
+pca.summary<-summary(pca.climate)
+##'rotation' contains the loadings of each variable in each PC axis
+##We are selecting only PC1 and PC2, but more or fewer components could be selected and exports
+rotation<-pca.summary$rotation
+rotation<-rotation[,1:2]
+##'importance' contains the importance (% of explained variance) of each PC axis
+importance<-pca.summary$importance
+##'x' contains the PC1, PC2, PC3, .. values for each pixel
+## Once again we are only using PC1 and PC2 in this script
+scores<-pca.summary$x[,1:2]
+```
+
+```{r combo, include=FALSE}
+##Combine the cell ID values with the PCA scores
+MAP.step<-cbind(ID.xy.cont[,('ID')],scores)
+colnames(MAP.step)[1]<-'ID'
+```
+
+```{r genras, include=FALSE}
+## create an index listing the position of non-NAs pixels within 'ID.for.cell'
+xx<-match(ID.for.cell,MAP.step[,'ID'])
+
+## this 'xx' is then used to get the PC values in the right order to set back the values to rasters
+pc1<-cbind(ID.for.cell,MAP.step[xx,'PC1'])
+pc2<-cbind(ID.for.cell,MAP.step[xx,'PC2'])
+```
+
+
+```{r saveras, include=FALSE}
+##Convert the PC values back to rasters 
+pc1.rast<-setValues(MAP,pc1[,2])
+pc2.rast<-setValues(MAP,pc2[,2])
+writeRaster(pc1.rast,"./data/PCA/PC1.tif", format="GTiff",overwrite=TRUE)
+writeRaster(pc2.rast,"./data/PCA/PC2.tif", format="GTiff",overwrite=TRUE)
+```
+
+```{r rotate, include=FALSE}
+## Apply a varimax rotation to the principal components analysis, to aid in interpretation of results
+varimax.rotation<-varimax(rotation)
+MAP.pca.rot<-as.matrix(MAP.pcadf)
+MAP.pca.rot<-scale(MAP.pca.rot,center=TRUE,scale=TRUE)
+MAP.var.load<-varimax.rotation$loadings
+pca.var.scores<-MAP.pca.rot %*% MAP.var.load
+```
+
+```{r comboscores, include=FALSE}
+##Combine the cell ID values with the rotated PCA scores
+MAP.step.var<-cbind(ID.xy.cont[,('ID')],pca.var.scores)
+colnames(MAP.step.var)[1]<-'ID'
+```
+
+```{r genras2, include=FALSE}
+xx<-match(ID.for.cell,MAP.step.var[,'ID'])
+
+##this 'xx' is then used to get the RC values in the right order to set back the values to rasters
+rc1<-cbind(ID.for.cell,MAP.step.var[xx,'PC1'])
+rc2<-cbind(ID.for.cell,MAP.step.var[xx,'PC2'])
+```
+
+### Loadings table
+
+```{r rasresults, echo=FALSE, warning=FALSE}
+## Convert the RC values back to rasters and save
+rc1.rast<-setValues(MAP,rc1[,2])
+rc2.rast<-setValues(MAP,rc2[,2])
+writeRaster(rc1.rast,"./data/PCA/PC1b.rot.tif", format="GTiff",overwrite=TRUE)
+writeRaster(rc2.rast,"./data/PCA/PC2b.rot.tif", format="GTiff",overwrite=TRUE)
+
+##Look at results
+rot.df<-pca.climate$rotation[,1:2]
+rot.df
+
+```
+
+### PC rasters
+
+```{r plotpc, echo=FALSE}
+
+p1<-levelplot(rc1.rast, margin=FALSE, main="PC1")
+p2<-levelplot(rc2.rast, margin=FALSE, main="PC2")
+grid.arrange(p1, p2, ncol=2)
+
+```

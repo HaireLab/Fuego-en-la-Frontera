@@ -1,0 +1,82 @@
+---
+title: "The distribution of vegetation and ownership classes across PC gradients"
+author: "S. Haire"
+date: "7/23/2020"
+output: html_document
+---
+
+### Vegetation (Rehfeldt biome) plots
+
+Use the random sample data to plot the distribution of the vegetation classes across principal components gradients (PC1 and PC2). 
+
+```{r setup, include=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(plyr)
+
+```
+
+
+```{r dataprep1, include=FALSE}
+
+d1<-read.csv("./data/tabular/veg.data.fig3.csv") ## sample across islands (burned and unburned)
+
+## factor country...change names slightly and order so plot layout corresponds to 
+## US (N) and Mx (S)
+d1$Country <- factor(d1$Country, levels = c("US", "MEXICO"))
+#d1$Country<-revalue(d1$Country, c("USA"="US", "MEX"="MEXICO"))
+
+## factor bioome to help arrange what's on top in graphs
+d1$biome<- factor(d1$biome, levels=c("Chaparral", "Pinyon-Juniper Woodlands", "Pine-Oak Forests", "Evergreen Forests and Woodlands", "Thornscrub", "Desertscrub", "Grasslands", "Spruce-Fir Forests", "Mixed Conifer Forests"))
+## color for ea class in a names vector, uses colorbrewer.org 'set1'
+bColors9=c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf','#999999') 
+names(bColors9)<-c( "Chaparral", "Thornscrub", "Desertscrub", "Grasslands", "Pinyon-Juniper Woodlands", "Pine-Oak Forests", "Evergreen Forests and Woodlands", "Mixed Conifer Forests","Spruce-Fir Forests")
+
+```
+
+```{r dataprep2, include=FALSE}
+
+d2<-read.csv("./data/tabular/own.data.fig3.csv") ## sample across islands (burned and unburned)
+## factor country...change names slightly and order so plot layout corresponds to 
+## US (N) and MX (S)
+d2$Country <- factor(d2$Country, levels = c("US", "MEXICO"))
+#d2$Country<-revalue(d2$Country, c("USA"="US", "MEX"="MEXICO"))
+d2$ownership.name<-factor(d2$ownership.name, levels=c("Ejido", "Private", "Protected", "BIA", "DOD", "DOI", "USFS", "State"))
+                          
+## color for ea class in a named vector colorbrewer2.org 'dark2'
+oColors8=c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666')
+names(oColors8)<-c("BIA", "DOD","DOI","Ejido", "USFS", "Private", "Protected", "State")
+
+```
+
+
+```{r plotvegpc1, echo=FALSE, fig.height=6, fig.width=12}
+gghistogram(d1, x="pc1.01",y="..density..", color="biome",fill="biome", xlab="PC1", ylab="Density", bins=25,linetype="blank", main="", facet.by="Country", nrow=2, alpha=0.6, legend.title="") +   theme_gray() +  scale_fill_manual(values=bColors9) + theme(legend.position ="top") +  guides(fill = guide_legend(nrow = 3)) 
+
+
+```
+
+```{r plotvegpc2, echo=FALSE, fig.height=6, fig.width=12}
+
+gghistogram(d1, x="pc2.01",y="..density..", color="biome",fill="biome", xlab="PC2", ylab="Density", bins=25,linetype="blank", main="", facet.by="Country", nrow=2, alpha=0.6, legend.title="") +  theme_gray() +    scale_fill_manual(values=bColors9) + theme(legend.position ="top") +  guides(fill = guide_legend(nrow = 3)) 
+
+
+```
+
+### Land ownership plots
+
+Use the random sample data to plot the distribution of the ownership classes across principal components gradients (PC1 and PC2). 
+
+```{r plotownpc1, echo=FALSE, fig.height=6, fig.width=12}
+gghistogram(d2, x="pc1.01",y="..density..", color="ownership.name",fill="ownership.name", xlab="PC1", ylab="Density",  bins=25,linetype="blank", main="", facet.by="Country", nrow=2, alpha=0.7, legend.title="") +   theme_gray() +  scale_fill_manual(values=oColors8) + theme(legend.position ="top") +  guides(fill = guide_legend(nrow = 2)) 
+
+
+```
+
+```{r plotownpc2, echo=FALSE, fig.height=6, fig.width=12}
+
+gghistogram(d2, x="pc2.01",y="..density..", color="ownership.name",fill="ownership.name", xlab="PC2", ylab="Density", bins=25,linetype="blank", main="", facet.by="Country", nrow=2, alpha=0.7, legend.title="") +  theme_gray() + scale_fill_manual(values=oColors8) + theme(legend.position ="top") +  guides(fill = guide_legend(nrow = 2)) 
+
+
+```

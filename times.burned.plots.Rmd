@@ -1,0 +1,52 @@
+---
+title: "The distribution of burn frequency across PC gradients"
+author: "S. Haire"
+date: "7/23/2020"
+output: html_document
+---
+## Plots for US and Mexico Sky Islands data
+
+### Notes
+Use the random sample data to plot the distribution for number of times burned across principal components one and two (PC1 and PC2).   
+
+
+```{r setup, include=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+```
+
+
+```{r dataprep,  include=FALSE}
+z1<-read.csv("./data/tabular/timesb.data.fig5.csv") ## just samples w/in burn perims
+
+## factor groups
+z1$group<-factor(z1$group, levels = c("1", "2", "3", "4"))
+
+## factor country
+z1$Country <- factor(z1$Country, levels = c("US", "MEXICO"))
+#z1$country<-revalue(z1$country, c("USA"="US", "MEX"="MEXICO"))
+
+```
+
+
+```{r plottmsb, echo=FALSE, warning=FALSE, fig.height=6, fig.width=12}
+p1<-gghistogram(z1, "pc1.01", color="group",fill="group", bins=25, palette="YlOrRd",
+  linetype="blank", main="",xlim=c(0,1), xlab="PC 1", facet.by="Country", 
+  nrow=2, alpha=1, legend.title="Times Burned") +  theme_gray() +  
+  theme(legend.position ="top") +   theme(text = element_text(size = 12)) + 
+  theme(strip.text = element_text(15, "bold"))  
+  
+p2<-gghistogram(z1, "pc2.01", color="group",fill="group", bins=25, palette="YlOrRd",
+                linetype="blank", main="",xlim=c(0,1), xlab="PC 2", facet.by="Country", 
+                nrow=2, alpha=1, legend.title="Times Burned") +  theme_gray() +  
+  theme(legend.position ="none") +   theme(text = element_text(size = 12)) + 
+  theme(strip.text = element_text(15, "bold"))
+## use patchwork
+p1 + p2 + plot_layout(ncol=2)
+```
+

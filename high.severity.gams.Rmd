@@ -1,0 +1,117 @@
+---
+title: "Generalized Additive Models: High severity in relation to climate environment"
+author: "S. Haire"
+date: "7/22/2020"
+output: html_document
+---
+The purpose of the script is to run Generalized Additive Models for the high severity threshold data and plot the results.
+
+Just the first principal component is analyzed here. 
+
+### Notes: 
+For development of input data, see: severity.thresholds.Rmd
+
+The metric of interest for this analysis is pland=Percent of the landscape (composition of high severity)
+
+pc1 = first principal component
+
+Code for GAMs, CIs and plots adapted from:
+Simpson, Gavin L. 2018. Modelling Palaeoecological Time Series Using Generalised Additive Models. Frontiers in Ecology and Evolution 6: 149. https://doi.org/10.3389/fevo.2018.00149.
+
+```{r setup, include=FALSE}
+
+## might not need all these!
+library(ggplot2)
+library(ggpubr)
+library(cowplot)
+library(plyr)
+library(dplyr)
+library(mgcv)
+library(scam)
+library(tidyr)
+library(tidyverse)
+#install.packages("devtools")
+#devtools::install_github("gavinsimpson/gratia")
+library(gratia)
+
+```
+
+### Read in the data and prepare for analysis
+
+
+```{r dataprep, include=TRUE}
+datap<-"./data/tabular/" # where the input datafile is located
+
+## pland data for all fires
+pland.hi<-read.csv(paste(datap, "class.metrics.high.csv",sep="")) 
+
+## rescale pc values to 0,1 
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+pland.hi$pc1<-range01(pland.hi$pc1)  
+pland.hi$pc2<-range01(pland.hi$pc2)
+
+```
+
+### Analysis of Mexico data
+
+```{r mexico, echo=FALSE}
+mx.hi<-pland.hi[pland.hi$Country=="MEX",]
+mod.mx <- gam(pland ~ s(pc1, k = 12), data = mx.hi, method = "REML")
+## take a look at gam results
+summary(mod.mx)
+plot(mod.mx, main="Mexico")
+
+### model evaluation
+## 
+N <- 1000 # number of points at which to evaluate the smooth
+## create new data to predict at; 1000 evenly-spaced values over `pc1`
+new.pc1.mx<- with(mx.hi, data.frame(pc1 = seq(min(pc1), max(pc1), length.out = N)))
+## Predict from the fitted model; note we predict from the $gam part
+new.pc1.mx <- cbind(new.pc1.mx, data.frame(predict(mod.mx, new.pc1.mx, se.fit = TRUE)))
+new.pc1.mx$Method<-rep("GAM (GCV)", N) # not using this...
+## Create the confidence interval
+crit.t <- qt(0.95, df = df.residual(mod.mx))
+new.pc1.mx <- transform(new.pc1.mx,
+                        upper = fit + (crit.t * se.fit),
+                        lower = fit - (crit.t * se.fit))
+
+## Plot estimated trend w ribbons
+xlim=c(min(pland.hi$pc1), max(pland.hi$pc1))
+ylim=c(min(pland.hi$pland), max(pland.hi$pland))
+high_fitted.mx.pc1<-ggscatter(mx.hi, "pc1", "pland", color="threshold.value",   xlab="PC1",ylab="High severity (%)",main="", xlim=xlim, ylim=ylim) + theme_gray() + gradient_color("black") + geom_ribbon(data=new.pc1.mx, mapping=aes(x=pc1, ymin = lower, ymax = upper), alpha = 0.1, inherit.aes = FALSE) +  geom_line(data=new.pc1.mx, mapping=aes(x=pc1, y=fit)) + theme(legend.position ="right") + theme(text = element_text(size = 15))
+  
+```
+
+### Analysis of US data
+
+```{r usa, echo=FALSE}
+
+## US
+us.hi<-pland.hi[pland.hi$Country=="US",]
+mod.us <- gam(pland ~ s(pc1, k = 12), data = us.hi, method = "REML")
+## check gam results
+summary(mod.us)
+plot(mod.us, main="US")
+## model evaluation
+N <- 1000 # number of points at which to evaluate the smooth
+## create new data to predict at; 1000 evenly-spaced values over `pc1`
+new.pc1.us<- with(us.hi, data.frame(pc1 = seq(min(pc1), max(pc1), length.out = N)))
+new.pc1.us <- cbind(new.pc1.us, data.frame(predict(mod.us, new.pc1.us, se.fit = TRUE)))
+new.pc1.us$Method<-rep("GAM (GCV)", N) # not using this
+## Create the confidence interval
+crit.t <- qt(0.95, df = df.residual(mod.us))
+new.pc1.us <- transform(new.pc1.us,
+                           upper = fit + (crit.t * se.fit),
+                           lower = fit - (crit.t * se.fit))
+
+## Plot estimated trend w ribbons
+xlim=c(min(pland.hi$pc1), max(pland.hi$pc1))
+ylim=c(min(pland.hi$pland), max(pland.hi$pland))
+high_fitted.us.pc1<-ggscatter(us.hi, "pc1", "pland", color="threshold.value", xlab="PC 1",ylab="High severity (%)", main="", xlim=xlim, ylim=ylim) + theme_gray() + gradient_color("black") + geom_ribbon(data=new.pc1.us, mapping=aes(x=pc1, ymin = lower, ymax = upper), alpha = 0.1, inherit.aes = FALSE) +  geom_line(data=new.pc1.us, mapping=aes(x=pc1, y=fit)) +  theme(legend.position ="right")+ theme(text = element_text(size = 15))
+
+```
+
+```{r plots, echo=FALSE}
+plot_grid(high_fitted.us.pc1, high_fitted.mx.pc1,ncol =1,align ="hv",axis ="lr", labels=c('US', 'Mexico'))
+```
+

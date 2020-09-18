@@ -1,0 +1,73 @@
+---
+title: "The distribution of mean fire return interval across climate gradients"
+author: "S. Haire"
+date: "7/23/2020"
+output: html_document
+---
+
+## Plots for US and Mexico Sky Islands data
+
+### Notes
+Use the random sample data of fire year layers to calculate the the sum of the lag differences in fire years divided by the number of intervals.  
+
+Plot the distribution for the mean fire return interval across principal components one and two (PC1 and PC2). Before plotting, the PC values are rescaled (0,1).  
+
+```{r setup, include=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+```
+
+```{r calcmfri, include=FALSE}
+
+z<-read.table("./data/tabular/mfri.data.fig6.txt") # sample of fire years w/in burned areas 
+z2<-z[,6:38] # just year cols
+z.s<-abs(t(apply(-z2, 1, sort))) # matrix
+z.sd<-abs(t(apply(z.s, 1, diff))) # lag diff if more than one fire year
+z3<-z.sd
+z3[z3>1984]<-0 # change year values to 0 (just one fire, no interval)
+sum1=apply(z3, 1, sum) # sum of diff's
+count1=rowSums(z3 > 0) # num of intervals
+mfri=sum1/(count1) # mean of sum(diff)/num of intervals
+mfri[is.na(mfri)]<-100 ## na res of div by 0
+z$mfri=mfri
+
+```
+
+```{r dataprep, include=FALSE}
+## factor country
+z$country <- factor(z$country, levels = c("USA", "MEX"))
+z$country<-revalue(z$country, c("USA"="US", "MEX"="MEXICO"))
+## pc rescale 0,1
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+z$pc1.01<-range01(z$pc1) # so x has common scale for fires and classes
+z$pc2.01<-range01(z$pc2)
+
+## classify
+## classify (values are continuous due to sampling method)
+z$mfri.group<-cut(z$mfri, breaks = c(-Inf,5,10,15,20,25,30,max(z$mfri)), labels = c("1 to 5", "5.5 to 10", "10.5 to 15", "16 to 20","21 to 25", "26 to 28", "unknown"))
+
+## just use the samples with fire frequency > 1
+z2<-z[z$mfri.group!="unknown",] # unknown are sample locations that only burned once
+z2$mfri.group<-factor(z2$mfri.group)
+
+```
+
+```{r plotmfri1, echo=FALSE, warning=FALSE, fig.height=6, fig.width=12}
+
+gghistogram(z2, "pc1.01", color="mfri.group",fill="mfri.group", xlab="PC 1", bins=25, palette=c('#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69'), linetype="blank", main="",xlim=c(0,1), facet.by="country", nrow=2, alpha=1,legend.title="") +  theme_gray() + theme(legend.position ="top") +   theme(text = element_text(size = 12)) + 
+  theme(strip.text = element_text(12, "bold"))
+
+```
+
+```{r plotmfri2, echo=FALSE, warning=FALSE, fig.height=6, fig.width=12}
+
+gghistogram(z2, "pc2.01", color="mfri.group",fill="mfri.group", xlab="PC 2", bins=25, palette=c('#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69'), linetype="blank", main="",xlim=c(0,1), facet.by="country", nrow=2, alpha=1, legend.title="") +  theme_gray() + theme(legend.position ="top") +  theme(text = element_text(size = 12)) +   theme(strip.text = element_text(12, "bold")) 
+
+```
+
+
