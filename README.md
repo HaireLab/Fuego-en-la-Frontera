@@ -2,11 +2,11 @@
 
 ### Data and code in this repository were used to conduct the analysis for the following manuscript: 
 
-Villarreal, M.L., J.M. Iniguez, A.D. Flesch, J.S. Sanderlin, C. Cortés Montaño, C.R. Conrad, and S.L. Haire. 2020. Contemporary fire regimes provide a critical perspective on restoration needs in the Mexico-US borderlands. Air, Soil and Water Research--Special Collection on case studies of a grass roots binational restoration collaborative in the Madrean Archipelago Ecoregion (2014-2019). < URL > 
+Villarreal, M.L., J.M. Iniguez, A.D. Flesch, J.S. Sanderlin, C. Cortés Montaño, C.R. Conrad, and S.L. Haire. 2020. Contemporary fire regimes provide a critical perspective on restoration needs in the Mexico-US borderlands. Air, Soil and Water Research--Special Collection on case studies of a grass roots binational restoration collaborative in the Madrean Archipelago Ecoregion (2014-2019). https://doi.org/10.1177/1178622120969191 
 
 ### Los datos y el código de este repositorio se utilizaron para realizar los análisis del siguiente manuscrito:
  
-Villarreal, M.L., J.M. Iniguez, A.D. Flesch, J.S. Sanderlin, C. Cortés Montaño, C.R. Conrad, and S.L. Haire. 2020. Los regímenes contemporáneos de incendios brindan una perspectiva crítica sobre las necesidades de restauración en la frontera México-Estados Unidos. Investigación sobre aire, suelo y agua - Colección especial de estudios de caso de restauración binacional colaborativa y de base en la ecorregión del archipiélago Madrense (2014-2019). < URL > 
+Villarreal, M.L., J.M. Iniguez, A.D. Flesch, J.S. Sanderlin, C. Cortés Montaño, C.R. Conrad, and S.L. Haire. 2020. Los regímenes contemporáneos de incendios brindan una perspectiva crítica sobre las necesidades de restauración en la frontera México-Estados Unidos. Investigación sobre aire, suelo y agua - Colección especial de estudios de caso de restauración binacional colaborativa y de base en la ecorregión del archipiélago Madrense (2014-2019). https://doi.org/10.1177/1178622120969191 
 
 ### R scripts and Report files, listed in order used to conduct the analysis. 
 Datafiles available in the repository are listed in parentheses.  
