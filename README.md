@@ -48,7 +48,7 @@ Output:
 vegetation.ownership.plots.html  
 
 ### Figure 4: High severity analysis  
-#### severity.thresholds.R   
+#### high.severity.class.metrics.R   
 Purpose: Rescale dNBR images and calculate % high severity based on multiple classification thresholds.  
 
 Input:  
